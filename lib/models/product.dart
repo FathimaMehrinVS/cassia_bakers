@@ -16,7 +16,7 @@ class Product {
     required this.category,
     this.imagePath,
     this.lowStockThreshold = 5,
-    required this.barcode,
+    this.barcode = '',
   });
 
   bool get isLowStock => stock <= lowStockThreshold && stock > 0;
