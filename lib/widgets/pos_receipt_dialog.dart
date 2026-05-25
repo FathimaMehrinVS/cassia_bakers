@@ -402,7 +402,7 @@ class _WhatsAppBroadcastDialog extends StatelessWidget {
     // 1. Load the brand logo image from assets
     pw.MemoryImage? logoImage;
     try {
-      final imageBytes = await rootBundle.load('assets/logo/logo.jpeg');
+      final imageBytes = await rootBundle.load('assets/logo/logo.png');
       logoImage = pw.MemoryImage(imageBytes.buffer.asUint8List());
     } catch (e) {
       // Logo fallback is fine
@@ -438,7 +438,7 @@ class _WhatsAppBroadcastDialog extends StatelessWidget {
 
               // Subtitle info
               pw.Text(
-                '12, Bakery Lane, MG Road, Bangalore\nPh: +91 98765 43210\nEmail: orders@cassiabakers.com',
+                'Mulavarickal Buildings, Bus Stand, 1st, Market Rd, opp. Pvt, Periyar Nagar, Aluva, 683101\nPh: +91 79074 78324\nEmail: cassiabakery26@gmail.com',
                 textAlign: pw.TextAlign.center,
                 style: pw.TextStyle(fontSize: 10, color: PdfColors.grey),
               ),
@@ -666,7 +666,7 @@ class _WhatsAppBroadcastDialog extends StatelessWidget {
 
     pw.MemoryImage? logoImage;
     try {
-      final imageBytes = await rootBundle.load('assets/logo/logo.jpeg');
+      final imageBytes = await rootBundle.load('assets/logo/logo.png');
       logoImage = pw.MemoryImage(imageBytes.buffer.asUint8List());
     } catch (e) {
       // Fallback
@@ -696,7 +696,7 @@ class _WhatsAppBroadcastDialog extends StatelessWidget {
               ),
               pw.SizedBox(height: 4),
               pw.Text(
-                '12, Bakery Lane, MG Road, Bangalore\nPh: +91 98765 43210\nEmail: orders@cassiabakers.com',
+                'Mulavarickal Buildings, Bus Stand, 1st, Market Rd, opp. Pvt, Periyar Nagar, Aluva, 683101\nPh: +91 79074 78324\nEmail: cassiabakery26@gmail.com',
                 textAlign: pw.TextAlign.center,
                 style: pw.TextStyle(fontSize: 10, color: PdfColors.grey),
               ),
@@ -938,14 +938,16 @@ class _WhatsAppBroadcastDialog extends StatelessWidget {
                 style: TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic),
               ),
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
                     child: const Text('Close', style: TextStyle(color: Colors.grey)),
                   ),
-                  const SizedBox(width: 8),
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.blueGrey,
@@ -959,7 +961,6 @@ class _WhatsAppBroadcastDialog extends StatelessWidget {
                     icon: const Icon(Icons.share, size: 14),
                     label: const Text('Other Share', style: TextStyle(fontSize: 12)),
                   ),
-                  const SizedBox(width: 8),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
