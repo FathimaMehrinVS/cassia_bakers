@@ -975,7 +975,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                 child: const Text(
                   'Physical Bill verified under local SQLite references',
                   style: TextStyle(color: Colors.white70, fontSize: 11),
-                  textAlign: Center,
+                  textAlign: TextAlign.center,
                 ),
               )
             ],

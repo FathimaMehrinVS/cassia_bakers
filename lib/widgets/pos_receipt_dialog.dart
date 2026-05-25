@@ -396,7 +396,7 @@ class _WhatsAppBroadcastDialog extends StatelessWidget {
               const Text('WHATSAPP INVOICE TEXT PREVIEW:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.grey)),
               const SizedBox(height: 6),
               Container(
-                maxHeight: 180,
+                constraints: const BoxConstraints(maxHeight: 180),
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF7F9FA),
