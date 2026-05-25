@@ -5,6 +5,8 @@ import '../models/order.dart';
 import '../models/customer.dart';
 import '../models/expense.dart';
 import '../models/user_model.dart';
+import '../models/supplier.dart';
+import '../models/supplier_transaction.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AppState extends ChangeNotifier {
@@ -15,11 +17,24 @@ class AppState extends ChangeNotifier {
   List<CakeOrder> _orders = [];
   List<Customer> _customers = [];
   List<Expense> _expenses = [];
+  List<String> _categories = [];
+  List<Supplier> _suppliers = [];
+  List<SupplierTransaction> _transactions = [];
 
   List<Product> get products => _products;
   List<CakeOrder> get orders => _orders;
   List<Customer> get customers => _customers;
   List<Expense> get expenses => _expenses;
+  List<String> get categories => _categories;
+  List<Supplier> get suppliers => _suppliers;
+  List<SupplierTransaction> get transactions => _transactions;
+
+  // Bluetooth Printer Settings
+  String? _pairedPrinterName;
+  bool _isPrinterConnected = false;
+
+  String? get pairedPrinterName => _pairedPrinterName;
+  bool get isPrinterConnected => _isPrinterConnected;
 
   // Active Session Auth
   User? _currentUser;
@@ -50,6 +65,7 @@ class AppState extends ChangeNotifier {
   AppState() {
     loadAllData();
     _loadUserSession();
+    loadPrinterSettings();
   }
 
   // ==========================================
@@ -61,6 +77,9 @@ class AppState extends ChangeNotifier {
       _orders = await _db.getOrders();
       _customers = await _db.getCustomers();
       _expenses = await _db.getExpenses();
+      _categories = await _db.getCategories();
+      _suppliers = await _db.getSuppliers();
+      _transactions = await _db.getSupplierTransactions();
       notifyListeners();
     } catch (e) {
       // Graceful error logging
@@ -161,9 +180,18 @@ class AppState extends ChangeNotifier {
 
   void addToCart(Product p) {
     if (p.stock <= 0) return; // Out of stock
-    if (_cart.containsKey(p)) {
-      if (_cart[p]! < p.stock) {
-        _cart[p] = _cart[p]! + 1;
+    
+    Product? existingKey;
+    for (var key in _cart.keys) {
+      if (key.id == p.id) {
+        existingKey = key;
+        break;
+      }
+    }
+
+    if (existingKey != null) {
+      if (_cart[existingKey]! < p.stock) {
+        _cart[existingKey] = _cart[existingKey]! + 1;
       }
     } else {
       _cart[p] = 1;
@@ -391,6 +419,83 @@ class AppState extends ChangeNotifier {
 
   double get defaultGstPercent => _posGstPercent;
   void setDefaultGstPercent(double rate) => setPosGst(rate);
+
+  // ==========================================
+  // DYNAMIC CATEGORY OPERATIONS
+  // ==========================================
+  Future<void> addCategory(String name) async {
+    final clean = name.trim();
+    if (clean.isNotEmpty) {
+      await _db.insertCategory(clean);
+      await loadAllData();
+    }
+  }
+
+  // ==========================================
+  // SUPPLIER & LEDGER OPERATIONS
+  // ==========================================
+  Future<void> addSupplier(Supplier s) async {
+    await _db.insertSupplier(s);
+    await loadAllData();
+  }
+
+  Future<void> updateSupplier(Supplier s) async {
+    await _db.updateSupplier(s);
+    await loadAllData();
+  }
+
+  Future<void> deleteSupplier(int id) async {
+    await _db.deleteSupplier(id);
+    await loadAllData();
+  }
+
+  Future<void> addSupplierTransaction(SupplierTransaction t) async {
+    await _db.insertSupplierTransaction(t);
+    await loadAllData();
+  }
+
+  Future<void> settleSupplierDues(Supplier s, double amount, String date, {String? notes}) async {
+    final t = SupplierTransaction(
+      supplierId: s.id!,
+      productsPurchased: 'Debt Settlement Payment',
+      quantity: 0,
+      costPrice: 0.0,
+      totalAmount: 0.0,
+      paidAmount: amount,
+      dueAmount: -amount,
+      transactionDate: date,
+      notes: notes ?? 'Ledger balance payment',
+    );
+    await addSupplierTransaction(t);
+  }
+
+  // ==========================================
+  // BLUETOOTH THERMAL PRINTER SETTINGS
+  // ==========================================
+  Future<void> loadPrinterSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    _pairedPrinterName = prefs.getString('paired_printer_name');
+    _isPrinterConnected = prefs.getBool('printer_connected') ?? false;
+    notifyListeners();
+  }
+
+  Future<void> pairPrinter(String name) async {
+    _pairedPrinterName = name;
+    _isPrinterConnected = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('paired_printer_name', name);
+    await prefs.setBool('printer_connected', true);
+    notifyListeners();
+  }
+
+  Future<void> disconnectPrinter() async {
+    _pairedPrinterName = null;
+    _isPrinterConnected = false;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('paired_printer_name');
+    await prefs.setBool('printer_connected', false);
+    notifyListeners();
+  }
 
   Future<void> resetDatabaseToSeeded() async {
     await _db.resetDatabase();
