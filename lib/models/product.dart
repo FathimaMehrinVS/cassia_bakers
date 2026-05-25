@@ -3,9 +3,10 @@ class Product {
   final String name;
   final double price;
   final int stock;
-  final String category; // Cakes, Pastries, Bread, Cookies, Beverages
+  final String category;
   final String? imagePath;
   final int lowStockThreshold;
+  final String barcode; // Unique product barcode for POS scans
 
   Product({
     this.id,
@@ -15,6 +16,7 @@ class Product {
     required this.category,
     this.imagePath,
     this.lowStockThreshold = 5,
+    required this.barcode,
   });
 
   bool get isLowStock => stock <= lowStockThreshold && stock > 0;
@@ -29,6 +31,7 @@ class Product {
       'category': category,
       'imagePath': imagePath,
       'lowStockThreshold': lowStockThreshold,
+      'barcode': barcode,
     };
   }
 
@@ -41,6 +44,7 @@ class Product {
       category: map['category'] as String,
       imagePath: map['imagePath'] as String?,
       lowStockThreshold: map['lowStockThreshold'] as int? ?? 5,
+      barcode: map['barcode'] as String? ?? '',
     );
   }
 
@@ -52,6 +56,7 @@ class Product {
     String? category,
     String? imagePath,
     int? lowStockThreshold,
+    String? barcode,
   }) {
     return Product(
       id: id ?? this.id,
@@ -61,6 +66,7 @@ class Product {
       category: category ?? this.category,
       imagePath: imagePath ?? this.imagePath,
       lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
+      barcode: barcode ?? this.barcode,
     );
   }
 }
