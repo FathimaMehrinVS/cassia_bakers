@@ -168,7 +168,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             // 3. User & Staff Credentials roster
             Row(
-              mainAxisAlignment: MainAxisAlignment.between,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Staff accounts', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.warmBrown)),
                 TextButton.icon(
@@ -200,7 +200,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         : IconButton(
                             icon: const Icon(Icons.delete_outline, color: Colors.red),
                             onPressed: () {
-                              state.deleteStaff(staff.id!);
+                              state.deleteStaff(staff.username);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Staff account deleted successfully!')),
                               );

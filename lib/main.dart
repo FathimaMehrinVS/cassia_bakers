@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/constants.dart';
+import 'core/theme.dart';
 import 'core/database_helper.dart';
 import 'providers/app_state.dart';
 import 'providers/theme_provider.dart';
@@ -43,8 +44,8 @@ class MyApp extends StatelessWidget {
       title: 'Cassia Bakery ERP',
       debugShowCheckedModeBanner: false,
       themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      theme: AppThemes.lightTheme,
-      darkTheme: AppThemes.darkTheme,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
       home: const SplashScreen(),
     );
   }

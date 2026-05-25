@@ -31,7 +31,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   void dispose() {
     _controller.dispose();
-    super.initState();
+    super.dispose();
   }
 
   void _navigateToNext() async {
@@ -89,7 +89,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 style: TextStyle(
                   fontSize: 16,
                   fontStyle: FontStyle.italic,
-                  color: Colors.white90,
+                  color: Colors.white70,
                 ),
               ),
               const Spacer(flex: 2),

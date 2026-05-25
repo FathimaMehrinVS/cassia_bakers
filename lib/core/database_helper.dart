@@ -95,6 +95,26 @@ class DatabaseHelper {
     await _seedDatabase(db);
   }
 
+  Future<void> resetDatabase() async {
+    if (kIsWeb) {
+      _webProducts.clear();
+      _webOrders.clear();
+      _webCustomers.clear();
+      _webExpenses.clear();
+      _webProducts.addAll(_getSeedProducts());
+      _webCustomers.addAll(_getSeedCustomers());
+      _webOrders.addAll(_getSeedOrders());
+      _webExpenses.addAll(_getSeedExpenses());
+      return;
+    }
+    final db = await database;
+    await db.delete('products');
+    await db.delete('orders');
+    await db.delete('customers');
+    await db.delete('expenses');
+    await _seedDatabase(db);
+  }
+
   Future<void> _seedDatabase(Database db) async {
     // Seed Products
     final products = _getSeedProducts();

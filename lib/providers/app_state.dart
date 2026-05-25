@@ -369,4 +369,31 @@ class AppState extends ChangeNotifier {
   int get lowStockItemsCount {
     return _products.where((p) => p.isLowStock || p.isOutOfStock).length;
   }
+
+  // ==========================================
+  // DYNAMIC STAFF & PRESET TARIFF MANAGEMENT
+  // ==========================================
+  final List<User> _staffList = [
+    User(username: 'admin', role: 'Admin'),
+    User(username: 'staff', role: 'Staff'),
+  ];
+  List<User> get staffList => _staffList;
+
+  void addStaff(String username, String password, String role) {
+    _staffList.add(User(username: username, role: role));
+    notifyListeners();
+  }
+
+  void deleteStaff(String username) {
+    _staffList.removeWhere((u) => u.username == username);
+    notifyListeners();
+  }
+
+  double get defaultGstPercent => _posGstPercent;
+  void setDefaultGstPercent(double rate) => setPosGst(rate);
+
+  Future<void> resetDatabaseToSeeded() async {
+    await _db.resetDatabase();
+    await loadAllData();
+  }
 }
