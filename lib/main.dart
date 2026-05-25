@@ -9,6 +9,7 @@ import 'views/splash_screen.dart';
 import 'views/dashboard_screen.dart';
 import 'views/pos_screen.dart';
 import 'views/orders_screen.dart';
+import 'views/suppliers_screen.dart';
 import 'views/inventory_screen.dart';
 import 'views/customers_screen.dart';
 import 'views/expenses_screen.dart';
@@ -76,11 +77,12 @@ class _MainNavigationFrameState extends State<MainNavigationFrame> {
       }),
       const OrdersScreen(),
       const PosScreen(),
-      const InventoryScreen(),
-      const CustomersScreen(),
-      const ExpensesScreen(),
-      const ReportsScreen(),
-      const SettingsScreen(),
+      const SuppliersScreen(), // Index 3
+      const InventoryScreen(), // Index 4
+      const CustomersScreen(), // Index 5
+      const ExpensesScreen(),  // Index 6
+      const ReportsScreen(),   // Index 7
+      const SettingsScreen(),  // Index 8
     ];
 
     if (isWide) {
@@ -89,7 +91,7 @@ class _MainNavigationFrameState extends State<MainNavigationFrame> {
           children: [
             // Vertical Side Navigation Rail for Large Screens
             NavigationRail(
-              selectedIndex: _currentIndex >= 8 ? 0 : _currentIndex,
+              selectedIndex: _currentIndex >= 9 ? 0 : _currentIndex,
               onDestinationSelected: (index) => setState(() => _currentIndex = index),
               labelType: NavigationRailLabelType.all,
               backgroundColor: AppColors.primaryMaroon,
@@ -108,6 +110,7 @@ class _MainNavigationFrameState extends State<MainNavigationFrame> {
                 NavigationRailDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: Text('Dashboard')),
                 NavigationRailDestination(icon: Icon(Icons.cake_outlined), selectedIcon: Icon(Icons.cake), label: Text('Orders')),
                 NavigationRailDestination(icon: Icon(Icons.point_of_sale_outlined), selectedIcon: Icon(Icons.point_of_sale), label: Text('POS Billing')),
+                NavigationRailDestination(icon: Icon(Icons.local_shipping_outlined), selectedIcon: Icon(Icons.local_shipping), label: Text('Suppliers')),
                 NavigationRailDestination(icon: Icon(Icons.inventory_2_outlined), selectedIcon: Icon(Icons.inventory_2), label: Text('Inventory')),
                 NavigationRailDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: Text('Customers')),
                 NavigationRailDestination(icon: Icon(Icons.payments_outlined), selectedIcon: Icon(Icons.payments), label: Text('Expenses')),
@@ -126,11 +129,11 @@ class _MainNavigationFrameState extends State<MainNavigationFrame> {
     // Standard Mobile Layout
     return Scaffold(
       body: screens[_currentIndex],
-      // Bottom Navigation Bar manages 5 Primary tabs for Mobile, routing others to the More drawer
+      // Bottom Navigation Bar manages 6 Primary tabs for Mobile, routing others to the More drawer
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex >= 5 ? 4 : _currentIndex,
+        currentIndex: _currentIndex >= 5 ? 5 : _currentIndex,
         onTap: (index) {
-          if (index == 4) {
+          if (index == 5) {
             // Open More Operations Bottom Sheet Drawer
             _showMoreOperationsSheet(context);
           } else {
@@ -142,6 +145,7 @@ class _MainNavigationFrameState extends State<MainNavigationFrame> {
           BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: 'Dashboard'),
           BottomNavigationBarItem(icon: Icon(Icons.cake_outlined), activeIcon: Icon(Icons.cake), label: 'Orders'),
           BottomNavigationBarItem(icon: Icon(Icons.point_of_sale_outlined), activeIcon: Icon(Icons.point_of_sale), label: 'POS Billing'),
+          BottomNavigationBarItem(icon: Icon(Icons.local_shipping_outlined), activeIcon: Icon(Icons.local_shipping), label: 'Suppliers'),
           BottomNavigationBarItem(icon: Icon(Icons.inventory_2_outlined), activeIcon: Icon(Icons.inventory_2), label: 'Inventory'),
           BottomNavigationBarItem(icon: Icon(Icons.more_horiz_outlined), activeIcon: Icon(Icons.more_horiz), label: 'More'),
         ],
@@ -174,7 +178,7 @@ class _MainNavigationFrameState extends State<MainNavigationFrame> {
               subtitle: const Text('Outstanding ledgers and loyalty points'),
               onTap: () {
                 Navigator.of(context).pop();
-                setState(() => _currentIndex = 4); // Index of Customers
+                setState(() => _currentIndex = 5); // Index of Customers
               },
             ),
             ListTile(
@@ -183,7 +187,7 @@ class _MainNavigationFrameState extends State<MainNavigationFrame> {
               subtitle: const Text('Shop rent, utility bills, and raw materials'),
               onTap: () {
                 Navigator.of(context).pop();
-                setState(() => _currentIndex = 5); // Index of Expenses
+                setState(() => _currentIndex = 6); // Index of Expenses
               },
             ),
             ListTile(
@@ -192,7 +196,7 @@ class _MainNavigationFrameState extends State<MainNavigationFrame> {
               subtitle: const Text('Visual sales charts and P&L ledger statistics'),
               onTap: () {
                 Navigator.of(context).pop();
-                setState(() => _currentIndex = 6); // Index of Reports
+                setState(() => _currentIndex = 7); // Index of Reports
               },
             ),
             ListTile(
@@ -201,7 +205,7 @@ class _MainNavigationFrameState extends State<MainNavigationFrame> {
               subtitle: const Text('Tax configurations and staff roster controls'),
               onTap: () {
                 Navigator.of(context).pop();
-                setState(() => _currentIndex = 7); // Index of Settings
+                setState(() => _currentIndex = 8); // Index of Settings
               },
             ),
             const SizedBox(height: 16),
