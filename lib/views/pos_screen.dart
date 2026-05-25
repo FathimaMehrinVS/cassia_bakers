@@ -61,15 +61,15 @@ class _PosScreenState extends State<PosScreen> {
               children: [
                 ActionChip(
                   label: const Text('Black Forest'),
-                  onTap: () => _barcodeController.text = 'blackforest',
+                  onPressed: () => _barcodeController.text = 'blackforest',
                 ),
                 ActionChip(
                   label: const Text('Butter Cookies'),
-                  onTap: () => _barcodeController.text = 'cookies',
+                  onPressed: () => _barcodeController.text = 'cookies',
                 ),
                 ActionChip(
                   label: const Text('Veg Puff'),
-                  onTap: () => _barcodeController.text = 'puff',
+                  onPressed: () => _barcodeController.text = 'puff',
                 ),
               ],
             )
@@ -176,7 +176,7 @@ class _PosScreenState extends State<PosScreen> {
                     border: Border.all(color: AppColors.primaryMaroon.withOpacity(0.2)),
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.between,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('Total Bill Amount:', style: TextStyle(fontWeight: FontWeight.bold)),
                       Text(currency.format(state.cartTotal), style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryMaroon, fontSize: 18)),
