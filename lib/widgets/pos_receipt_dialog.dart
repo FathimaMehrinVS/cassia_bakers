@@ -8,6 +8,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:whatsapp_share2/whatsapp_share2.dart';
 import '../core/constants.dart';
 import '../models/product.dart';
 import '../providers/app_state.dart';
@@ -396,7 +397,7 @@ class _WhatsAppBroadcastDialog extends StatelessWidget {
     required this.invoiceText,
   });
 
-  Future<void> _generateAndSharePDFInvoice(BuildContext context) async {
+  Future<void> _sharePDFDirectToWhatsApp(BuildContext context) async {
     final pdf = pw.Document();
 
     // 1. Load the brand logo image from assets
@@ -627,15 +628,260 @@ class _WhatsAppBroadcastDialog extends StatelessWidget {
       ),
     );
 
-    // 3. Save the PDF to a temporary physical file
+    // Save the PDF to a temporary physical file
     final output = await getTemporaryDirectory();
     final file = File("${output.path}/Cassia_Bakers_Invoice_$orderId.pdf");
     await file.writeAsBytes(await pdf.save());
 
-    // 4. Launch Native Share Sheet containing the generated PDF file!
+    // Format the phone number (E.164 format without '+')
+    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+    final formattedPhone = cleanPhone.startsWith('91') && cleanPhone.length == 12
+        ? cleanPhone
+        : cleanPhone.length == 10
+            ? '91$cleanPhone'
+            : cleanPhone.isNotEmpty ? cleanPhone : '919876543210';
+
+    try {
+      final isShared = await WhatsappShare.shareFile(
+        phone: formattedPhone,
+        filePath: [file.path],
+        text: 'Thank you for shopping with CASSIA BAKERS. Please find your invoice attached.',
+      );
+      if (isShared != true) {
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: 'Thank you for shopping with CASSIA BAKERS. Please find your invoice attached.',
+        );
+      }
+    } catch (e) {
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'Thank you for shopping with CASSIA BAKERS. Please find your invoice attached.',
+      );
+    }
+  }
+
+  Future<void> _sharePDFGeneral(BuildContext context) async {
+    final pdf = pw.Document();
+
+    pw.MemoryImage? logoImage;
+    try {
+      final imageBytes = await rootBundle.load('assets/logo/logo.jpeg');
+      logoImage = pw.MemoryImage(imageBytes.buffer.asUint8List());
+    } catch (e) {
+      // Fallback
+    }
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        build: (pw.Context ctx) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+            children: [
+              if (logoImage != null)
+                pw.Center(
+                  child: pw.Image(logoImage, width: 70, height: 70),
+                ),
+              pw.SizedBox(height: 10),
+              pw.Text(
+                'CASSIA BAKERS',
+                textAlign: pw.TextAlign.center,
+                style: pw.TextStyle(
+                  fontSize: 24,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColor.fromHex('#6B1C2A'),
+                ),
+              ),
+              pw.SizedBox(height: 4),
+              pw.Text(
+                '12, Bakery Lane, MG Road, Bangalore\nPh: +91 98765 43210\nEmail: orders@cassiabakers.com',
+                textAlign: pw.TextAlign.center,
+                style: pw.TextStyle(fontSize: 10, color: PdfColors.grey),
+              ),
+              pw.SizedBox(height: 16),
+              pw.Divider(thickness: 1, color: PdfColors.grey300),
+              pw.SizedBox(height: 12),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'INVOICE TO:',
+                        style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700),
+                      ),
+                      pw.SizedBox(height: 2),
+                      pw.Text(
+                        customerName.isEmpty ? 'Walk-in Customer' : customerName,
+                        style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+                      ),
+                      if (phone.isNotEmpty)
+                        pw.Text(
+                          'Ph: +91 $phone',
+                          style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+                        ),
+                    ],
+                  ),
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    children: [
+                      pw.Text(
+                        'INVOICE NO: $orderId',
+                        style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
+                      ),
+                      pw.Text(
+                        'DATE: ${DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.now())}',
+                        style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 20),
+              pw.Container(
+                decoration: pw.BoxDecoration(
+                  color: PdfColor.fromHex('#6B1C2A'),
+                ),
+                padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                child: pw.Row(
+                  children: [
+                    pw.Expanded(
+                      flex: 4,
+                      child: pw.Text('Item Description', style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                    ),
+                    pw.Expanded(
+                      flex: 2,
+                      child: pw.Text('Price (Rs.)', textAlign: pw.TextAlign.right, style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                    ),
+                    pw.Expanded(
+                      flex: 1,
+                      child: pw.Text('Qty', textAlign: pw.TextAlign.center, style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                    ),
+                    pw.Expanded(
+                      flex: 2,
+                      child: pw.Text('Total (Rs.)', textAlign: pw.TextAlign.right, style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                    ),
+                  ],
+                ),
+              ),
+              ...cartItems.entries.map((entry) {
+                final p = entry.key;
+                final qty = entry.value;
+                return pw.Container(
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey300, width: 0.5)),
+                  ),
+                  padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                  child: pw.Row(
+                    children: [
+                      pw.Expanded(
+                        flex: 4,
+                        child: pw.Text(p.name, style: pw.TextStyle(fontSize: 10)),
+                      ),
+                      pw.Expanded(
+                        flex: 2,
+                        child: pw.Text('${p.price.toStringAsFixed(0)}', textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 10)),
+                      ),
+                      pw.Expanded(
+                        flex: 1,
+                        child: pw.Text('$qty', textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 10)),
+                      ),
+                      pw.Expanded(
+                        flex: 2,
+                        child: pw.Text('${(p.price * qty).toStringAsFixed(0)}', textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 10)),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+              pw.SizedBox(height: 16),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.end,
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    children: [
+                      pw.Row(
+                        children: [
+                          pw.Text('Subtotal:  ', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                          pw.Text('${subtotal.toStringAsFixed(0)}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                        ],
+                      ),
+                      if (discount > 0) ...[
+                        pw.SizedBox(height: 4),
+                        pw.Row(
+                          children: [
+                            pw.Text('Discount:  ', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                            pw.Text('-${discount.toStringAsFixed(0)}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                          ],
+                        ),
+                      ],
+                      pw.SizedBox(height: 4),
+                      pw.Row(
+                        children: [
+                          pw.Text('GST (0%):  ', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                          pw.Text('0', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                        ],
+                      ),
+                      pw.SizedBox(height: 6),
+                      pw.Divider(thickness: 1, color: PdfColors.grey400),
+                      pw.SizedBox(height: 4),
+                      pw.Row(
+                        children: [
+                          pw.Text('GRAND TOTAL:  ', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColor.fromHex('#6B1C2A'))),
+                          pw.Text('${total.toStringAsFixed(0)}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColor.fromHex('#6B1C2A'))),
+                        ],
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Row(
+                        children: [
+                          pw.Text('Amount Paid:  ', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
+                          pw.Text('${paidAmount.toStringAsFixed(0)}', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.grey600)),
+                        ],
+                      ),
+                      if (total - paidAmount > 0) ...[
+                        pw.SizedBox(height: 2),
+                        pw.Row(
+                          children: [
+                            pw.Text('Balance Due:  ', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.red700)),
+                            pw.Text('${(total - paidAmount).toStringAsFixed(0)}', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.red700)),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+              pw.Spacer(),
+              pw.Divider(thickness: 0.5, color: PdfColors.grey300),
+              pw.SizedBox(height: 8),
+              pw.Text(
+                'Thank you for choosing Cassia Bakers!',
+                textAlign: pw.TextAlign.center,
+                style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: PdfColor.fromHex('#6B1C2A')),
+              ),
+              pw.SizedBox(height: 2),
+              pw.Text(
+                'Baked with love, served with joy.',
+                textAlign: pw.TextAlign.center,
+                style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600, fontStyle: pw.FontStyle.italic),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    final output = await getTemporaryDirectory();
+    final file = File("${output.path}/Cassia_Bakers_Invoice_$orderId.pdf");
+    await file.writeAsBytes(await pdf.save());
+
     await Share.shareXFiles(
       [XFile(file.path)],
-      text: 'Here is your invoice from Cassia Bakers for Order #$orderId.',
+      text: 'Thank you for shopping with CASSIA BAKERS. Please find your invoice attached.',
     );
   }
 
@@ -658,67 +904,38 @@ class _WhatsAppBroadcastDialog extends StatelessWidget {
                 children: const [
                   Icon(Icons.share, color: Colors.green),
                   SizedBox(width: 8),
-                  Text('WhatsApp Sharing Broadcast', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text('Direct WhatsApp Sharing', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ],
               ),
               const SizedBox(height: 12),
               const Text(
-                'High-fidelity PDF receipt generated successfully with Cassia Bakers logo! Click share to broadcast the PDF directly.',
+                'Generated invoice PDF has been temporarily stored in cache. Ready to share directly to the customer\'s WhatsApp thread.',
                 style: TextStyle(fontSize: 12),
               ),
               const SizedBox(height: 12),
-              const Text('WHATSAPP INVOICE PREVIEW:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.grey)),
+              const Text('WHATSAPP PRE-FILLED MESSAGE:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.grey)),
               const SizedBox(height: 6),
               Container(
-                constraints: const BoxConstraints(maxHeight: 180),
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF7F9FA),
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: Colors.grey.shade300),
                 ),
-                child: SingleChildScrollView(
-                  child: Text(
-                    invoiceText,
-                    style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.black87),
-                  ),
+                child: const Text(
+                  '“Thank you for shopping with CASSIA BAKERS. Please find your invoice attached.”',
+                  style: TextStyle(fontSize: 12, color: Colors.black87, fontStyle: FontStyle.italic),
                 ),
               ),
               const SizedBox(height: 12),
               Text(
-                'Recipient Number: +91 $fallbackPhone',
+                'Target Customer Number: +91 $fallbackPhone',
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
               const SizedBox(height: 12),
               const Text(
-                'Due to WhatsApp security restrictions, files cannot be directly pushed into a phone number without consent. For the fastest checkout experience:',
-                style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 6),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text('1. ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.green)),
-                  Expanded(
-                    child: Text(
-                      'Tap "Open Chat" to initialize/open the customer\'s WhatsApp screen directly.',
-                      style: TextStyle(fontSize: 10, color: Colors.black87),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text('2. ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.green)),
-                  Expanded(
-                    child: Text(
-                      'Come back and tap "Share PDF". The customer will now appear right at the top of your recent share targets!',
-                      style: TextStyle(fontSize: 10, color: Colors.black87),
-                    ),
-                  ),
-                ],
+                'Tapping "Share WhatsApp" opens WhatsApp directly into the customer\'s chat screen with the PDF invoice attached and pre-filled message ready.',
+                style: TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic),
               ),
               const SizedBox(height: 16),
               Row(
@@ -731,28 +948,16 @@ class _WhatsAppBroadcastDialog extends StatelessWidget {
                   const SizedBox(width: 8),
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.green,
-                      side: const BorderSide(color: Colors.green),
+                      foregroundColor: Colors.blueGrey,
+                      side: const BorderSide(color: Colors.blueGrey),
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     ),
                     onPressed: () async {
-                      final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
-                      final formattedPhone = cleanPhone.startsWith('91') && cleanPhone.length == 12
-                          ? cleanPhone
-                          : cleanPhone.length == 10
-                              ? '91$cleanPhone'
-                              : cleanPhone.isNotEmpty ? cleanPhone : '919876543210';
-
-                      final url = Uri.parse("https://wa.me/$formattedPhone");
-                      try {
-                        await launchUrl(url, mode: LaunchMode.externalApplication);
-                      } catch (e) {
-                        final webUrl = Uri.parse("https://api.whatsapp.com/send?phone=$formattedPhone");
-                        await launchUrl(webUrl, mode: LaunchMode.platformDefault);
-                      }
+                      Navigator.pop(context);
+                      await _sharePDFGeneral(context);
                     },
-                    icon: const Icon(Icons.chat, size: 14),
-                    label: const Text('Open Chat', style: TextStyle(fontSize: 12)),
+                    icon: const Icon(Icons.share, size: 14),
+                    label: const Text('Other Share', style: TextStyle(fontSize: 12)),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton.icon(
@@ -762,10 +967,10 @@ class _WhatsAppBroadcastDialog extends StatelessWidget {
                     ),
                     onPressed: () async {
                       Navigator.pop(context);
-                      await _generateAndSharePDFInvoice(context);
+                      await _sharePDFDirectToWhatsApp(context);
                     },
-                    icon: const Icon(Icons.picture_as_pdf, color: Colors.white, size: 14),
-                    label: const Text('Share PDF', style: TextStyle(color: Colors.white, fontSize: 12)),
+                    icon: const Icon(Icons.send, color: Colors.white, size: 14),
+                    label: const Text('Share WhatsApp', style: TextStyle(color: Colors.white, fontSize: 12)),
                   )
                 ],
               )
