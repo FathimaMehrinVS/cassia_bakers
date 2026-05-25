@@ -46,7 +46,7 @@ class ExpensesScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.between,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Expense Date:', style: TextStyle(fontWeight: FontWeight.bold)),
                     OutlinedButton(

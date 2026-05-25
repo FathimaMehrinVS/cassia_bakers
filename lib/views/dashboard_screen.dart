@@ -113,7 +113,7 @@ class DashboardScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.between,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text('Top Selling Products', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.warmBrown)),
                             TextButton(
@@ -141,7 +141,7 @@ class DashboardScreen extends StatelessWidget {
                   child: Column(
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.between,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('Sales Performance (May 2026)', style: TextStyle(fontWeight: FontWeight.bold)),
                           TextButton(
@@ -319,7 +319,7 @@ class DashboardScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.between,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(title, style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
               Icon(icon, color: Colors.white70, size: 20),

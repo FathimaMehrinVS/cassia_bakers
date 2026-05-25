@@ -71,7 +71,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 child: Column(
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.between,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           '${DateFormat('dd MMM').format(_selectedDateRange.start)} - ${DateFormat('dd MMM yyyy').format(_selectedDateRange.end)}',
@@ -102,7 +102,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     const SizedBox(height: 8),
                     // X-Axis labels
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.between,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: const [
                         Text('1 May', style: TextStyle(fontSize: 10, color: Colors.grey)),
                         Text('7 May', style: TextStyle(fontSize: 10, color: Colors.grey)),
@@ -154,7 +154,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           border: Border.all(color: AppColors.primaryMaroon.withOpacity(0.2)),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.between,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
               children: [
@@ -239,7 +239,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.between,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
