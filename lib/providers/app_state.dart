@@ -158,6 +158,11 @@ class AppState extends ChangeNotifier {
     await loadAllData();
   }
 
+  Future<void> addCategory(String name) async {
+    await _db.insertCategory(name);
+    await loadAllData();
+  }
+
   // ==========================================
   // POS CART OPERATIONS
   // ==========================================

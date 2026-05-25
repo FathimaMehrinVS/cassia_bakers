@@ -465,7 +465,7 @@ class _PosScreenState extends State<PosScreen> {
   }
 
   Widget _buildCategoryFilterRow(AppState state) {
-    final categories = ['All', 'Cakes', 'Pastries', 'Bread', 'Cookies', 'Beverages'];
+    final categories = ['All', ...state.categories];
     return Container(
       height: 48,
       margin: const EdgeInsets.only(bottom: 4),

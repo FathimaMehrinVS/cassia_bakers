@@ -64,9 +64,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: category,
+                value: state.categories.contains(category)
+                    ? category
+                    : (state.categories.isNotEmpty ? state.categories.first : 'Cakes'),
                 decoration: const InputDecoration(labelText: 'Category'),
-                items: ['Cakes', 'Pastries', 'Bread', 'Cookies', 'Beverages']
+                items: state.categories
                     .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
                     .toList(),
                 onChanged: (val) {
@@ -164,6 +166,29 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ),
       body: Column(
         children: [
+          // Create Category Button
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.md, left: AppSpacing.md, right: AppSpacing.md),
+            child: SizedBox(
+              width: double.infinity,
+              height: 40,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryMaroon,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                onPressed: () => _showAddCategoryDialog(context, state),
+                icon: const Icon(Icons.category_outlined, color: Colors.white, size: 18),
+                label: const Text(
+                  'Create New Category',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                ),
+              ),
+            ),
+          ),
           // 1. Search textfield
           Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
@@ -367,8 +392,48 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
+  void _showAddCategoryDialog(BuildContext context, AppState state) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Create New Category'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'Enter category name (e.g. Ice Cream)',
+            prefixIcon: Icon(Icons.category_outlined),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final String catName = controller.text.trim();
+              if (catName.isNotEmpty) {
+                await state.addCategory(catName);
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Category "$catName" created successfully!'),
+                    backgroundColor: AppColors.ready,
+                  ),
+                );
+              }
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCategoryChips(AppState state) {
-    final categories = ['All', 'Cakes', 'Pastries', 'Bread', 'Cookies', 'Beverages'];
+    final categories = ['All', ...state.categories];
     return Container(
       height: 40,
       margin: const EdgeInsets.only(bottom: 8),
