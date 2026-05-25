@@ -689,10 +689,36 @@ class _WhatsAppBroadcastDialog extends StatelessWidget {
                 'Recipient Number: +91 $fallbackPhone',
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               const Text(
-                'Tapping share launches native sheets for direct PDF file sharing to WhatsApp, Email, or printing.',
-                style: TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic),
+                'Due to WhatsApp security restrictions, files cannot be directly pushed into a phone number without consent. For the fastest checkout experience:',
+                style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text('1. ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.green)),
+                  Expanded(
+                    child: Text(
+                      'Tap "Open Chat" to initialize/open the customer\'s WhatsApp screen directly.',
+                      style: TextStyle(fontSize: 10, color: Colors.black87),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text('2. ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.green)),
+                  Expanded(
+                    child: Text(
+                      'Come back and tap "Share PDF". The customer will now appear right at the top of your recent share targets!',
+                      style: TextStyle(fontSize: 10, color: Colors.black87),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               Row(
@@ -702,15 +728,44 @@ class _WhatsAppBroadcastDialog extends StatelessWidget {
                     onPressed: () => Navigator.pop(context),
                     child: const Text('Close', style: TextStyle(color: Colors.grey)),
                   ),
-                  const SizedBox(width: 12),
-                   ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.green,
+                      side: const BorderSide(color: Colors.green),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    ),
+                    onPressed: () async {
+                      final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+                      final formattedPhone = cleanPhone.startsWith('91') && cleanPhone.length == 12
+                          ? cleanPhone
+                          : cleanPhone.length == 10
+                              ? '91$cleanPhone'
+                              : cleanPhone.isNotEmpty ? cleanPhone : '919876543210';
+
+                      final url = Uri.parse("https://wa.me/$formattedPhone");
+                      try {
+                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                      } catch (e) {
+                        final webUrl = Uri.parse("https://api.whatsapp.com/send?phone=$formattedPhone");
+                        await launchUrl(webUrl, mode: LaunchMode.platformDefault);
+                      }
+                    },
+                    icon: const Icon(Icons.chat, size: 14),
+                    label: const Text('Open Chat', style: TextStyle(fontSize: 12)),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
                     onPressed: () async {
                       Navigator.pop(context);
                       await _generateAndSharePDFInvoice(context);
                     },
-                    icon: const Icon(Icons.outgoing_mail, color: Colors.white, size: 16),
-                    label: const Text('Share PDF', style: TextStyle(color: Colors.white)),
+                    icon: const Icon(Icons.picture_as_pdf, color: Colors.white, size: 14),
+                    label: const Text('Share PDF', style: TextStyle(color: Colors.white, fontSize: 12)),
                   )
                 ],
               )
