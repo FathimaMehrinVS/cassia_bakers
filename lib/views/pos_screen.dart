@@ -7,6 +7,7 @@ import '../models/product.dart';
 import '../models/customer.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/pos_receipt_dialog.dart';
+import 'camera_scanner_screen.dart';
 
 class PosScreen extends StatefulWidget {
   const PosScreen({super.key});
@@ -282,6 +283,94 @@ class _PosScreenState extends State<PosScreen> {
     );
   }
 
+  void _processScannedBarcode(String code, AppState state) {
+    final cleanCode = code.toLowerCase().trim();
+    Product? foundProduct;
+    for (var p in state.products) {
+      if (p.name.toLowerCase().contains(cleanCode) || p.category.toLowerCase().contains(cleanCode) || p.id.toString() == cleanCode) {
+        foundProduct = p;
+        break;
+      }
+    }
+
+    if (foundProduct != null) {
+      state.addToCart(foundProduct);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Scanned: ${foundProduct.name} added to cart!'),
+          backgroundColor: AppColors.ready,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No item resolved for barcode: "$code"'),
+          backgroundColor: AppColors.outOfStock,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  void _showScanOptions(BuildContext context, AppState state) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 10),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Text('Choose Barcode Scan Mode', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 12),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: AppColors.primaryMaroon,
+                child: Icon(Icons.photo_camera, color: Colors.white),
+              ),
+              title: const Text('Physical Camera scan', style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: const Text('Use your phone back camera to scan real barcodes'),
+              onTap: () async {
+                Navigator.of(context).pop(); // Close sheet
+                final scannedCode = await Navigator.of(context).push<String>(
+                  MaterialPageRoute(builder: (context) => const CameraScannerScreen()),
+                );
+                if (scannedCode != null && mounted) {
+                  _processScannedBarcode(scannedCode, state);
+                }
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: AppColors.secondaryGold,
+                child: Icon(Icons.developer_mode, color: Colors.white),
+              ),
+              title: const Text('Developer Simulation', style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: const Text('Simulate scan without needing physical items'),
+              onTap: () {
+                Navigator.of(context).pop(); // Close sheet
+                _simulateBarcodeScan(state);
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = Provider.of<AppState>(context);
@@ -293,8 +382,8 @@ class _PosScreenState extends State<PosScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.qr_code_scanner, size: 28),
-            onPressed: () => _simulateBarcodeScan(state),
-            tooltip: 'Simulate Barcode Scan',
+            onPressed: () => _showScanOptions(context, state),
+            tooltip: 'Scan Barcode',
           ),
         ],
       ),
@@ -463,7 +552,7 @@ class _PosScreenState extends State<PosScreen> {
                     Text(currency.format(p.price), style: const TextStyle(color: AppColors.primaryMaroon, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.between,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(p.stock <= 0 ? 'Out of Stock' : 'Stock: ${p.stock}', style: TextStyle(fontSize: 11, color: p.stock <= 0 ? Colors.red : Colors.grey)),
                         if (p.stock > 0 && inCartQty > 0)
@@ -543,7 +632,7 @@ class _PosScreenState extends State<PosScreen> {
         color: AppColors.primaryMaroon,
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.between,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
               children: [
@@ -579,7 +668,7 @@ class _PosScreenState extends State<PosScreen> {
         children: [
           // Cart Header
           Row(
-            mainAxisAlignment: MainAxisAlignment.between,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Cart Items (${state.cart.length})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               if (state.cart.isNotEmpty)
@@ -627,7 +716,7 @@ class _PosScreenState extends State<PosScreen> {
             children: [
               _buildSummaryRow('Subtotal', currency.format(state.cartSubtotal)),
               Row(
-                mainAxisAlignment: MainAxisAlignment.between,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Discount'),
                   Row(
@@ -683,7 +772,7 @@ class _PosScreenState extends State<PosScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.between,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: fontSize)),
           Text(val, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: fontSize, color: isBold ? AppColors.primaryMaroon : AppColors.textDark)),
