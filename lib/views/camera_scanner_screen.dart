@@ -34,38 +34,36 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> {
         title: const Text('Scan Product Barcode', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           // Flash Torch Toggle Button
-          IconButton(
-            color: Colors.white,
-            icon: ValueListenableBuilder(
-              valueListenable: controller.torchState,
-              builder: (context, state, child) {
-                switch (state) {
-                  case TorchState.off:
-                    return const Icon(Icons.flash_off, color: Colors.grey);
-                  case TorchState.on:
-                    return const Icon(Icons.flash_on, color: AppColors.secondaryGold);
-                }
-              },
-            ),
-            iconSize: 26.0,
-            onPressed: () => controller.toggleTorch(),
+          ValueListenableBuilder<MobileScannerState>(
+            valueListenable: controller,
+            builder: (context, state, child) {
+              final torchState = state.torchState;
+              return IconButton(
+                color: Colors.white,
+                iconSize: 26.0,
+                icon: Icon(
+                  torchState == TorchState.on ? Icons.flash_on : Icons.flash_off,
+                  color: torchState == TorchState.on ? AppColors.secondaryGold : Colors.grey,
+                ),
+                onPressed: () => controller.toggleTorch(),
+              );
+            },
           ),
           // Lens Swapping Button
-          IconButton(
-            color: Colors.white,
-            icon: ValueListenableBuilder(
-              valueListenable: controller.cameraFacingState,
-              builder: (context, state, child) {
-                switch (state) {
-                  case CameraFacing.front:
-                    return const Icon(Icons.camera_front, color: AppColors.secondaryGold);
-                  case CameraFacing.back:
-                    return const Icon(Icons.camera_rear, color: Colors.white);
-                }
-              },
-            ),
-            iconSize: 26.0,
-            onPressed: () => controller.switchCamera(),
+          ValueListenableBuilder<MobileScannerState>(
+            valueListenable: controller,
+            builder: (context, state, child) {
+              final facing = state.cameraFacing;
+              return IconButton(
+                color: Colors.white,
+                iconSize: 26.0,
+                icon: Icon(
+                  facing == CameraFacing.front ? Icons.camera_front : Icons.camera_rear,
+                  color: facing == CameraFacing.front ? AppColors.secondaryGold : Colors.white,
+                ),
+                onPressed: () => controller.switchCamera(),
+              );
+            },
           ),
         ],
       ),
