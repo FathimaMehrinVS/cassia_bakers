@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../core/constants.dart';
 import '../models/product.dart';
+import '../providers/app_state.dart';
 
 class PosReceiptDialog extends StatelessWidget {
   final String orderId;
@@ -59,7 +61,7 @@ class PosReceiptDialog extends StatelessWidget {
 
               // Transaction Meta Details
               Row(
-                mainAxisAlignment: MainAxisAlignment.between,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('Invoice: $orderId', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                   Text(currentDate, style: const TextStyle(color: Colors.grey, fontSize: 11)),
@@ -128,11 +130,31 @@ class PosReceiptDialog extends StatelessWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      icon: const Icon(Icons.print),
-                      label: const Text('Print'),
+                      icon: const Icon(Icons.print, color: Color(0xFF800020)),
+                      label: const Text('Print ESC/POS', style: TextStyle(color: Color(0xFF800020))),
                       onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Connecting to thermal receipt printer...'), backgroundColor: AppColors.ready),
+                        final appState = Provider.of<AppState>(context, listen: false);
+                        if (!appState.isPrinterConnected) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('No printer paired! Go to Settings to pair a simulated thermal printer.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (context) {
+                            return _SimulatedPrinterDialog(
+                              printerName: appState.pairedPrinterName ?? 'Thermal Printer',
+                              orderId: orderId,
+                              cartItems: cartItems,
+                              total: total,
+                            );
+                          },
                         );
                       },
                     ),
@@ -140,11 +162,37 @@ class PosReceiptDialog extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
-                      icon: const Icon(Icons.share),
-                      label: const Text('Share PDF'),
+                      icon: const Icon(Icons.share, color: Colors.white),
+                      label: const Text('WhatsApp PDF', style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF800020)),
                       onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Generating PDF invoice receipt...'), backgroundColor: AppColors.ready),
+                        final String invoiceText = '''
+🍰 *CASSIO BAKERS INVOICE* 🍰
+------------------------------------
+Invoice: $orderId
+Customer: ${customerName.isEmpty ? 'Walk-in Customer' : customerName}
+Date: $currentDate
+------------------------------------
+${cartItems.entries.map((e) => '• ${e.value}x ${e.key.name} - ₹${(e.key.price * e.value).toStringAsFixed(0)}').join('\n')}
+------------------------------------
+Subtotal: ₹${subtotal.toStringAsFixed(0)}
+${discount > 0 ? 'Discount: -₹${discount.toStringAsFixed(0)}\n' : ''}GST (5%): ₹${gstAmount.toStringAsFixed(0)}
+*GRAND TOTAL: ₹${total.toStringAsFixed(0)}*
+------------------------------------
+Amount Paid: ₹${paidAmount.toStringAsFixed(0)}
+${total - paidAmount > 0 ? '*Balance Due: ₹${(total - paidAmount).toStringAsFixed(0)}*\n' : ''}
+Thank you for your order!
+Baked with love, served with joy.
+------------------------------------
+''';
+                        showDialog(
+                          context: context,
+                          builder: (context) {
+                            return _WhatsAppBroadcastDialog(
+                              phone: customerPhone,
+                              invoiceText: invoiceText,
+                            );
+                          },
                         );
                       },
                     ),
@@ -167,7 +215,7 @@ class PosReceiptDialog extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.between,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: fontSize)),
           Text(
@@ -179,6 +227,227 @@ class PosReceiptDialog extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// SIMULATED BLUETOOTH THERMAL PRINTER PROGRESS
+// ==========================================
+class _SimulatedPrinterDialog extends StatefulWidget {
+  final String printerName;
+  final String orderId;
+  final Map<Product, int> cartItems;
+  final double total;
+
+  const _SimulatedPrinterDialog({
+    required this.printerName,
+    required this.orderId,
+    required this.cartItems,
+    required this.total,
+  });
+
+  @override
+  State<_SimulatedPrinterDialog> createState() => _SimulatedPrinterDialogState();
+}
+
+class _SimulatedPrinterDialogState extends State<_SimulatedPrinterDialog> {
+  String _status = 'Establishing secure Bluetooth channel...';
+  double _progress = 0.1;
+  bool _finished = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startPrintSimulation();
+  }
+
+  void _startPrintSimulation() async {
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+    setState(() {
+      _status = 'Transmitting ESC/POS tax headers...';
+      _progress = 0.4;
+    });
+
+    await Future.delayed(const Duration(milliseconds: 700));
+    if (!mounted) return;
+    setState(() {
+      _status = 'Generating rasterized ticket lines...';
+      _progress = 0.7;
+    });
+
+    await Future.delayed(const Duration(milliseconds: 700));
+    if (!mounted) return;
+    setState(() {
+      _status = 'Feeding paper & triggering auto-cutter...';
+      _progress = 0.9;
+    });
+
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+    setState(() {
+      _status = 'Receipt printed successfully!';
+      _progress = 1.0;
+      _finished = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      title: Row(
+        children: [
+          const Icon(Icons.bluetooth_audio, color: Colors.blue),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              widget.printerName,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: _progress,
+            color: Colors.green,
+            backgroundColor: Colors.grey.shade200,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _status,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              'Job: ${widget.orderId}\nTotal: ₹${widget.total.toStringAsFixed(0)}\nLines: ${widget.cartItems.length} items',
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.black54),
+            ),
+          )
+        ],
+      ),
+      actions: [
+        if (_finished)
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK', style: TextStyle(color: Colors.white)),
+          )
+      ],
+    );
+  }
+}
+
+// ==========================================
+// SIMULATED WHATSAPP SHARE BROADCAST HUB
+// ==========================================
+class _WhatsAppBroadcastDialog extends StatelessWidget {
+  final String phone;
+  final String invoiceText;
+
+  const _WhatsAppBroadcastDialog({
+    required this.phone,
+    required this.invoiceText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+    final fallbackPhone = cleanPhone.isNotEmpty ? cleanPhone : '9876543210';
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 450),
+        padding: const EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: const [
+                  Icon(Icons.share, color: Colors.green),
+                  SizedBox(width: 8),
+                  Text('WhatsApp Sharing Broadcast', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Pre-formatted WhatsApp PDF invoice summary text generated successfully!',
+                style: TextStyle(fontSize: 12),
+              ),
+              const SizedBox(height: 12),
+              const Text('WHATSAPP INVOICE TEXT PREVIEW:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.grey)),
+              const SizedBox(height: 6),
+              Container(
+                maxHeight: 180,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF7F9FA),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: SingleChildScrollView(
+                  child: Text(
+                    invoiceText,
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.black87),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Recipient Number: +91 $fallbackPhone',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Tapping share simulates standard Android intent triggers, broadcasting PDF invoices and pre-filled web deep links directly to clients.',
+                style: TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Close', style: TextStyle(color: Colors.grey)),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Simulating Android intent broadcast to +91 $fallbackPhone... PDF invoice sent!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.outgoing_mail, color: Colors.white, size: 16),
+                    label: const Text('Share Receipt', style: TextStyle(color: Colors.white)),
+                  )
+                ],
+              )
+            ],
+          ),
+        ),
       ),
     );
   }
