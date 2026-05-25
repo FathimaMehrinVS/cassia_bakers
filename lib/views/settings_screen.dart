@@ -166,6 +166,178 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 24),
 
+            // 2.2. Product Categories Register
+            const Text('Product Categories Register', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.warmBrown)),
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    state.categories.isEmpty
+                        ? const Text('No categories configured', style: TextStyle(color: Colors.grey))
+                        : Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: state.categories.map((cat) {
+                              return Chip(
+                                backgroundColor: const Color(0xFFFFF8E7),
+                                side: const BorderSide(color: Color(0xFFEADBC8)),
+                                label: Text(
+                                  cat,
+                                  style: const TextStyle(color: Color(0xFF800020), fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            decoration: const InputDecoration(
+                              hintText: 'Enter new category (e.g. Ice Cream) and press enter',
+                              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              border: OutlineInputBorder(),
+                            ),
+                            onSubmitted: (val) async {
+                              if (val.trim().isNotEmpty) {
+                                await state.addCategory(val.trim());
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Category "$val" added successfully!')),
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Press enter key to register the category. New entries propagate instantly to POS screen filter chips.',
+                      style: TextStyle(fontSize: 11, color: Colors.grey, fontStyle: FontStyle.italic),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // 2.3. Bluetooth Thermal Printer Manager
+            const Text('Bluetooth Thermal Printer Manager', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.warmBrown)),
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Column(
+                  children: [
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        state.isPrinterConnected ? Icons.print : Icons.print_disabled,
+                        color: state.isPrinterConnected ? Colors.green : Colors.red,
+                        size: 32,
+                      ),
+                      title: Text(
+                        state.isPrinterConnected
+                            ? 'Paired Printer: ${state.pairedPrinterName}'
+                            : 'No Paired Thermal Printer',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        state.isPrinterConnected
+                            ? 'Ready for offline-first bakery receipt printing'
+                            : 'Supports stable testing without requiring physical printer hardware',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    const Divider(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if (state.isPrinterConnected) ...[
+                          TextButton(
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Sent hardware test page... ESC/POS packet simulation OK!'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            },
+                            child: const Text('Test Receipt', style: TextStyle(color: Color(0xFF800020))),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                            onPressed: () async {
+                              await state.disconnectPrinter();
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Printer disconnected successfully.')),
+                                );
+                              }
+                            },
+                            child: const Text('Disconnect', style: TextStyle(color: Colors.white)),
+                          ),
+                        ] else
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF800020)),
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) {
+                                  final devices = [
+                                    'RPP-02N Thermal Printer (58mm)',
+                                    'TVS RP-3160 Gold Bluetooth',
+                                    'Epson TM-T88VI Printer',
+                                    'Xprinter XP-N160I Serial BT',
+                                  ];
+                                  return SimpleDialog(
+                                    title: const Text('Available Thermal Printers'),
+                                    children: devices.map((dev) {
+                                      return SimpleDialogOption(
+                                        onPressed: () async {
+                                          await state.pairPrinter(dev);
+                                          Navigator.pop(context);
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text('Paired successfully with $dev!'),
+                                                backgroundColor: Colors.green,
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(vertical: 4),
+                                          child: Row(
+                                            children: [
+                                              const Icon(Icons.bluetooth, color: Colors.blue),
+                                              const SizedBox(width: 10),
+                                              Text(dev, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  );
+                                },
+                              );
+                            },
+                            child: const Text('Scan Printer Devices', style: TextStyle(color: Colors.white)),
+                          )
+                      ],
+                    )
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
             // 3. User & Staff Credentials roster
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
