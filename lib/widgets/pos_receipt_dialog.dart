@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../core/constants.dart';
 import '../models/product.dart';
 import '../providers/app_state.dart';
@@ -46,7 +47,7 @@ class PosReceiptDialog extends StatelessWidget {
             children: [
               // Receipt Header
               const Text(
-                'CASSIO BAKERS',
+                'CASSIA BAKERS',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontFamily: 'serif', fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primaryMaroon),
               ),
@@ -167,7 +168,7 @@ class PosReceiptDialog extends StatelessWidget {
                       style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF800020)),
                       onPressed: () {
                         final String invoiceText = '''
-🍰 *CASSIO BAKERS INVOICE* 🍰
+🍰 *CASSIA BAKERS INVOICE* 🍰
 ------------------------------------
 Invoice: $orderId
 Customer: ${customerName.isEmpty ? 'Walk-in Customer' : customerName}
@@ -429,16 +430,26 @@ class _WhatsAppBroadcastDialog extends StatelessWidget {
                     child: const Text('Close', style: TextStyle(color: Colors.grey)),
                   ),
                   const SizedBox(width: 12),
-                  ElevatedButton.icon(
+                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Simulating Android intent broadcast to +91 $fallbackPhone... PDF invoice sent!'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
+                      
+                      final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+                      final formattedPhone = cleanPhone.startsWith('91') && cleanPhone.length == 12
+                          ? cleanPhone
+                          : cleanPhone.length == 10
+                              ? '91$cleanPhone'
+                              : cleanPhone.isNotEmpty ? cleanPhone : '919876543210';
+
+                      final url = Uri.parse("https://wa.me/$formattedPhone?text=${Uri.encodeComponent(invoiceText)}");
+                      
+                      try {
+                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                      } catch (e) {
+                        final webUrl = Uri.parse("https://api.whatsapp.com/send?phone=$formattedPhone&text=${Uri.encodeComponent(invoiceText)}");
+                        await launchUrl(webUrl, mode: LaunchMode.platformDefault);
+                      }
                     },
                     icon: const Icon(Icons.outgoing_mail, color: Colors.white, size: 16),
                     label: const Text('Share Receipt', style: TextStyle(color: Colors.white)),
