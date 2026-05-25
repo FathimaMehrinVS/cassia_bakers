@@ -38,8 +38,9 @@ class DatabaseHelper {
     final path = join(dbPath, filePath);
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _upgradeDB,
     );
   }
 
@@ -138,6 +139,62 @@ class DatabaseHelper {
 
     // Seed data
     await _seedDatabase(db);
+  }
+
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // 1. Add barcode column to products if not present
+      try {
+        await db.execute("ALTER TABLE products ADD COLUMN barcode TEXT DEFAULT ''");
+      } catch (e) {
+        // column may already be present
+      }
+
+      // 2. Create categories table if not exists
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE
+          )
+        ''');
+      } catch (e) {}
+
+      // 3. Create suppliers table if not exists
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS suppliers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            phone TEXT NOT NULL UNIQUE,
+            email TEXT,
+            pendingDues REAL NOT NULL DEFAULT 0.0,
+            paidAmount REAL NOT NULL DEFAULT 0.0,
+            notes TEXT
+          )
+        ''');
+      } catch (e) {}
+
+      // 4. Create supplier_transactions table if not exists
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS supplier_transactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            supplierId INTEGER NOT NULL,
+            productsPurchased TEXT NOT NULL,
+            quantity INTEGER NOT NULL,
+            costPrice REAL NOT NULL,
+            totalAmount REAL NOT NULL,
+            paidAmount REAL NOT NULL,
+            dueAmount REAL NOT NULL,
+            transactionDate TEXT NOT NULL,
+            attachmentPath TEXT,
+            notes TEXT,
+            FOREIGN KEY (supplierId) REFERENCES suppliers (id) ON DELETE CASCADE
+          )
+        ''');
+      } catch (e) {}
+    }
   }
 
   Future<void> resetDatabase() async {
