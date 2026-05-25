@@ -45,7 +45,7 @@ class AppState extends ChangeNotifier {
   final Map<Product, int> _cart = {};
   Map<Product, int> get cart => _cart;
   double _posDiscount = 0.0;
-  double _posGstPercent = 5.0; // Default 5% GST
+  double _posGstPercent = 0.0; // Default 0% GST
 
   double get posDiscount => _posDiscount;
   double get posGstPercent => _posGstPercent;

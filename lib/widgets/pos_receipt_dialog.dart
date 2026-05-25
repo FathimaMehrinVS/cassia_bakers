@@ -1,6 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/constants.dart';
 import '../models/product.dart';
@@ -109,7 +115,7 @@ class PosReceiptDialog extends StatelessWidget {
               // Receipt Calculation Summary
               _buildReceiptRow('Subtotal', currencyFormat.format(subtotal)),
               if (discount > 0) _buildReceiptRow('Discount', '- ' + currencyFormat.format(discount), valueColor: Colors.red),
-              _buildReceiptRow('GST (5%)', currencyFormat.format(gstAmount)),
+              _buildReceiptRow('GST (0%)', currencyFormat.format(0.0)),
               const SizedBox(height: 4),
               _buildReceiptRow('Grand Total', currencyFormat.format(total), isBold: true, fontSize: 16),
               const Divider(height: 20),
@@ -177,7 +183,7 @@ Date: $currentDate
 ${cartItems.entries.map((e) => '• ${e.value}x ${e.key.name} - ₹${(e.key.price * e.value).toStringAsFixed(0)}').join('\n')}
 ------------------------------------
 Subtotal: ₹${subtotal.toStringAsFixed(0)}
-${discount > 0 ? 'Discount: -₹${discount.toStringAsFixed(0)}\n' : ''}GST (5%): ₹${gstAmount.toStringAsFixed(0)}
+${discount > 0 ? 'Discount: -₹${discount.toStringAsFixed(0)}\n' : ''}GST (0%): ₹0
 *GRAND TOTAL: ₹${total.toStringAsFixed(0)}*
 ------------------------------------
 Amount Paid: ₹${paidAmount.toStringAsFixed(0)}
@@ -190,7 +196,15 @@ Baked with love, served with joy.
                           context: context,
                           builder: (context) {
                             return _WhatsAppBroadcastDialog(
+                              orderId: orderId,
+                              customerName: customerName,
                               phone: customerPhone,
+                              cartItems: cartItems,
+                              subtotal: subtotal,
+                              discount: discount,
+                              gstAmount: gstAmount,
+                              total: total,
+                              paidAmount: paidAmount,
                               invoiceText: invoiceText,
                             );
                           },
@@ -358,13 +372,272 @@ class _SimulatedPrinterDialogState extends State<_SimulatedPrinterDialog> {
 // SIMULATED WHATSAPP SHARE BROADCAST HUB
 // ==========================================
 class _WhatsAppBroadcastDialog extends StatelessWidget {
+  final String orderId;
+  final String customerName;
   final String phone;
+  final Map<Product, int> cartItems;
+  final double subtotal;
+  final double discount;
+  final double gstAmount;
+  final double total;
+  final double paidAmount;
   final String invoiceText;
 
   const _WhatsAppBroadcastDialog({
+    required this.orderId,
+    required this.customerName,
     required this.phone,
+    required this.cartItems,
+    required this.subtotal,
+    required this.discount,
+    required this.gstAmount,
+    required this.total,
+    required this.paidAmount,
     required this.invoiceText,
   });
+
+  Future<void> _generateAndSharePDFInvoice(BuildContext context) async {
+    final pdf = pw.Document();
+
+    // 1. Load the brand logo image from assets
+    pw.MemoryImage? logoImage;
+    try {
+      final imageBytes = await rootBundle.load('assets/logo/logo.jpeg');
+      logoImage = pw.MemoryImage(imageBytes.buffer.asUint8List());
+    } catch (e) {
+      // Logo fallback is fine
+    }
+
+    // 2. Build the PDF layout page
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        build: (pw.Context ctx) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+            children: [
+              // Logo
+              if (logoImage != null)
+                pw.Center(
+                  child: pw.Image(logoImage, width: 70, height: 70),
+                ),
+              pw.SizedBox(height: 10),
+
+              // Title
+              pw.Text(
+                'CASSIA BAKERS',
+                textAlign: pw.TextAlign.center,
+                style: pw.TextStyle(
+                  fontSize: 24,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColor.fromHex('#6B1C2A'),
+                ),
+              ),
+              pw.SizedBox(height: 4),
+
+              // Subtitle info
+              pw.Text(
+                '12, Bakery Lane, MG Road, Bangalore\nPh: +91 98765 43210\nEmail: orders@cassiabakers.com',
+                textAlign: pw.TextAlign.center,
+                style: pw.TextStyle(fontSize: 10, color: PdfColors.grey),
+              ),
+              pw.SizedBox(height: 16),
+              pw.Divider(thickness: 1, color: PdfColors.grey300),
+              pw.SizedBox(height: 12),
+
+              // Meta Details Row
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'INVOICE TO:',
+                        style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700),
+                      ),
+                      pw.SizedBox(height: 2),
+                      pw.Text(
+                        customerName.isEmpty ? 'Walk-in Customer' : customerName,
+                        style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+                      ),
+                      if (phone.isNotEmpty)
+                        pw.Text(
+                          'Ph: +91 $phone',
+                          style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+                        ),
+                    ],
+                  ),
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    children: [
+                      pw.Text(
+                        'INVOICE NO: $orderId',
+                        style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
+                      ),
+                      pw.Text(
+                        'DATE: ${DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.now())}',
+                        style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 20),
+
+              // Table header
+              pw.Container(
+                decoration: pw.BoxDecoration(
+                  color: PdfColor.fromHex('#6B1C2A'),
+                ),
+                padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                child: pw.Row(
+                  children: [
+                    pw.Expanded(
+                      flex: 4,
+                      child: pw.Text('Item Description', style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                    ),
+                    pw.Expanded(
+                      flex: 2,
+                      child: pw.Text('Price (Rs.)', textAlign: pw.TextAlign.right, style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                    ),
+                    pw.Expanded(
+                      flex: 1,
+                      child: pw.Text('Qty', textAlign: pw.TextAlign.center, style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                    ),
+                    pw.Expanded(
+                      flex: 2,
+                      child: pw.Text('Total (Rs.)', textAlign: pw.TextAlign.right, style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Table lines
+              ...cartItems.entries.map((entry) {
+                final p = entry.key;
+                final qty = entry.value;
+                return pw.Container(
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey300, width: 0.5)),
+                  ),
+                  padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                  child: pw.Row(
+                    children: [
+                      pw.Expanded(
+                        flex: 4,
+                        child: pw.Text(p.name, style: pw.TextStyle(fontSize: 10)),
+                      ),
+                      pw.Expanded(
+                        flex: 2,
+                        child: pw.Text('${p.price.toStringAsFixed(0)}', textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 10)),
+                      ),
+                      pw.Expanded(
+                        flex: 1,
+                        child: pw.Text('$qty', textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 10)),
+                      ),
+                      pw.Expanded(
+                        flex: 2,
+                        child: pw.Text('${(p.price * qty).toStringAsFixed(0)}', textAlign: pw.TextAlign.right, style: pw.TextStyle(fontSize: 10)),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+              pw.SizedBox(height: 16),
+
+              // Summary
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.end,
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    children: [
+                      pw.Row(
+                        children: [
+                          pw.Text('Subtotal:  ', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                          pw.Text('${subtotal.toStringAsFixed(0)}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                        ],
+                      ),
+                      if (discount > 0) ...[
+                        pw.SizedBox(height: 4),
+                        pw.Row(
+                          children: [
+                            pw.Text('Discount:  ', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                            pw.Text('-${discount.toStringAsFixed(0)}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                          ],
+                        ),
+                      ],
+                      pw.SizedBox(height: 4),
+                      pw.Row(
+                        children: [
+                          pw.Text('GST (0%):  ', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                          pw.Text('0', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                        ],
+                      ),
+                      pw.SizedBox(height: 6),
+                      pw.Divider(thickness: 1, color: PdfColors.grey400),
+                      pw.SizedBox(height: 4),
+                      pw.Row(
+                        children: [
+                          pw.Text('GRAND TOTAL:  ', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColor.fromHex('#6B1C2A'))),
+                          pw.Text('${total.toStringAsFixed(0)}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColor.fromHex('#6B1C2A'))),
+                        ],
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Row(
+                        children: [
+                          pw.Text('Amount Paid:  ', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
+                          pw.Text('${paidAmount.toStringAsFixed(0)}', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.grey600)),
+                        ],
+                      ),
+                      if (total - paidAmount > 0) ...[
+                        pw.SizedBox(height: 2),
+                        pw.Row(
+                          children: [
+                            pw.Text('Balance Due:  ', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.red700)),
+                            pw.Text('${(total - paidAmount).toStringAsFixed(0)}', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.red700)),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+              pw.Spacer(),
+
+              // Footer notes
+              pw.Divider(thickness: 0.5, color: PdfColors.grey300),
+              pw.SizedBox(height: 8),
+              pw.Text(
+                'Thank you for choosing Cassia Bakers!',
+                textAlign: pw.TextAlign.center,
+                style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: PdfColor.fromHex('#6B1C2A')),
+              ),
+              pw.SizedBox(height: 2),
+              pw.Text(
+                'Baked with love, served with joy.',
+                textAlign: pw.TextAlign.center,
+                style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600, fontStyle: pw.FontStyle.italic),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    // 3. Save the PDF to a temporary physical file
+    final output = await getTemporaryDirectory();
+    final file = File("${output.path}/Cassia_Bakers_Invoice_$orderId.pdf");
+    await file.writeAsBytes(await pdf.save());
+
+    // 4. Launch Native Share Sheet containing the generated PDF file!
+    await Share.shareXFiles(
+      [XFile(file.path)],
+      text: 'Here is your invoice from Cassia Bakers for Order #$orderId.',
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -390,11 +663,11 @@ class _WhatsAppBroadcastDialog extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               const Text(
-                'Pre-formatted WhatsApp PDF invoice summary text generated successfully!',
+                'High-fidelity PDF receipt generated successfully with Cassia Bakers logo! Click share to broadcast the PDF directly.',
                 style: TextStyle(fontSize: 12),
               ),
               const SizedBox(height: 12),
-              const Text('WHATSAPP INVOICE TEXT PREVIEW:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.grey)),
+              const Text('WHATSAPP INVOICE PREVIEW:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.grey)),
               const SizedBox(height: 6),
               Container(
                 constraints: const BoxConstraints(maxHeight: 180),
@@ -418,7 +691,7 @@ class _WhatsAppBroadcastDialog extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Tapping share simulates standard Android intent triggers, broadcasting PDF invoices and pre-filled web deep links directly to clients.',
+                'Tapping share launches native sheets for direct PDF file sharing to WhatsApp, Email, or printing.',
                 style: TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic),
               ),
               const SizedBox(height: 16),
@@ -434,25 +707,10 @@ class _WhatsAppBroadcastDialog extends StatelessWidget {
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                     onPressed: () async {
                       Navigator.pop(context);
-                      
-                      final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
-                      final formattedPhone = cleanPhone.startsWith('91') && cleanPhone.length == 12
-                          ? cleanPhone
-                          : cleanPhone.length == 10
-                              ? '91$cleanPhone'
-                              : cleanPhone.isNotEmpty ? cleanPhone : '919876543210';
-
-                      final url = Uri.parse("https://wa.me/$formattedPhone?text=${Uri.encodeComponent(invoiceText)}");
-                      
-                      try {
-                        await launchUrl(url, mode: LaunchMode.externalApplication);
-                      } catch (e) {
-                        final webUrl = Uri.parse("https://api.whatsapp.com/send?phone=$formattedPhone&text=${Uri.encodeComponent(invoiceText)}");
-                        await launchUrl(webUrl, mode: LaunchMode.platformDefault);
-                      }
+                      await _generateAndSharePDFInvoice(context);
                     },
                     icon: const Icon(Icons.outgoing_mail, color: Colors.white, size: 16),
-                    label: const Text('Share Receipt', style: TextStyle(color: Colors.white)),
+                    label: const Text('Share PDF', style: TextStyle(color: Colors.white)),
                   )
                 ],
               )
