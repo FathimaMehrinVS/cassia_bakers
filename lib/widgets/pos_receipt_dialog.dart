@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -8,7 +8,6 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:whatsapp_share2/whatsapp_share2.dart';
 import '../core/constants.dart';
 import '../models/product.dart';
 import '../providers/app_state.dart';
@@ -642,12 +641,13 @@ class _WhatsAppBroadcastDialog extends StatelessWidget {
             : cleanPhone.isNotEmpty ? cleanPhone : '919876543210';
 
     try {
-      final isShared = await WhatsappShare.shareFile(
-        phone: formattedPhone,
-        filePath: [file.path],
-        text: 'Thank you for shopping with CASSIA BAKERS. Please find your invoice attached.',
-      );
-      if (isShared != true) {
+      const platform = MethodChannel('com.cassiabakers.app/whatsapp');
+      final bool? success = await platform.invokeMethod<bool>('shareToWhatsApp', {
+        'phone': formattedPhone,
+        'filePath': file.path,
+        'message': 'Thank you for shopping with CASSIA BAKERS. Please find your invoice attached.',
+      });
+      if (success != true) {
         await Share.shareXFiles(
           [XFile(file.path)],
           text: 'Thank you for shopping with CASSIA BAKERS. Please find your invoice attached.',
