@@ -59,33 +59,29 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(flex: 3),
-              // Vector Cake Illustration
-              CustomPaint(
-                size: const Size(120, 120),
-                painter: CakeLogoPainter(),
-              ),
-              const SizedBox(height: 24),
-              // Brand Name
-              const Text(
-                'Cassia',
-                style: TextStyle(
-                  fontFamily: 'serif',
-                  fontSize: 54,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.secondaryGold,
-                  letterSpacing: 2.0,
+              // Beautiful Custom Brand Logo
+              Container(
+                width: 220,
+                height: 220,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.secondaryGold, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.secondaryGold.withOpacity(0.4),
+                      blurRadius: 20,
+                      spreadRadius: 4,
+                    )
+                  ],
+                ),
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/logo/logo.jpeg',
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
-              const Text(
-                'BAKERY ERP',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white70,
-                  letterSpacing: 4.0,
-                ),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 32),
               // Tagline
               const Text(
                 '“Manage your bakery business smartly”',
