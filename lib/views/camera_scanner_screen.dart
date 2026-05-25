@@ -53,7 +53,7 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> {
           ValueListenableBuilder<MobileScannerState>(
             valueListenable: controller,
             builder: (context, state, child) {
-              final facing = state.cameraFacing;
+              final facing = state.cameraDirection;
               return IconButton(
                 color: Colors.white,
                 iconSize: 26.0,
