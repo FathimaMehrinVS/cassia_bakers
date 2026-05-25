@@ -6,6 +6,8 @@ import '../models/product.dart';
 import '../models/order.dart';
 import '../models/customer.dart';
 import '../models/expense.dart';
+import '../models/supplier.dart';
+import '../models/supplier_transaction.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -16,6 +18,9 @@ class DatabaseHelper {
   final List<CakeOrder> _webOrders = [];
   final List<Customer> _webCustomers = [];
   final List<Expense> _webExpenses = [];
+  final List<String> _webCategories = [];
+  final List<Supplier> _webSuppliers = [];
+  final List<SupplierTransaction> _webSupplierTransactions = [];
 
   DatabaseHelper._init();
 
@@ -39,7 +44,7 @@ class DatabaseHelper {
   }
 
   Future<void> _createDB(Database db, int version) async {
-    // Products Table
+    // Products Table with barcode field
     await db.execute('''
       CREATE TABLE products (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,7 +53,8 @@ class DatabaseHelper {
         stock INTEGER NOT NULL,
         category TEXT NOT NULL,
         imagePath TEXT,
-        lowStockThreshold INTEGER NOT NULL DEFAULT 5
+        lowStockThreshold INTEGER NOT NULL DEFAULT 5,
+        barcode TEXT NOT NULL UNIQUE
       )
     ''');
 
@@ -91,6 +97,45 @@ class DatabaseHelper {
       )
     ''');
 
+    // Dynamic Categories Table
+    await db.execute('''
+      CREATE TABLE categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE
+      )
+    ''');
+
+    // Suppliers Table
+    await db.execute('''
+      CREATE TABLE suppliers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT NOT NULL UNIQUE,
+        email TEXT,
+        pendingDues REAL NOT NULL DEFAULT 0.0,
+        paidAmount REAL NOT NULL DEFAULT 0.0,
+        notes TEXT
+      )
+    ''');
+
+    // Supplier Transactions Table
+    await db.execute('''
+      CREATE TABLE supplier_transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        supplierId INTEGER NOT NULL,
+        productsPurchased TEXT NOT NULL,
+        quantity INTEGER NOT NULL,
+        costPrice REAL NOT NULL,
+        totalAmount REAL NOT NULL,
+        paidAmount REAL NOT NULL,
+        dueAmount REAL NOT NULL,
+        transactionDate TEXT NOT NULL,
+        attachmentPath TEXT,
+        notes TEXT,
+        FOREIGN KEY (supplierId) REFERENCES suppliers (id) ON DELETE CASCADE
+      )
+    ''');
+
     // Seed data
     await _seedDatabase(db);
   }
@@ -101,10 +146,17 @@ class DatabaseHelper {
       _webOrders.clear();
       _webCustomers.clear();
       _webExpenses.clear();
+      _webCategories.clear();
+      _webSuppliers.clear();
+      _webSupplierTransactions.clear();
+
       _webProducts.addAll(_getSeedProducts());
       _webCustomers.addAll(_getSeedCustomers());
       _webOrders.addAll(_getSeedOrders());
       _webExpenses.addAll(_getSeedExpenses());
+      _webCategories.addAll(_getSeedCategories());
+      _webSuppliers.addAll(_getSeedSuppliers());
+      _webSupplierTransactions.addAll(_getSeedSupplierTransactions());
       return;
     }
     final db = await database;
@@ -112,10 +164,19 @@ class DatabaseHelper {
     await db.delete('orders');
     await db.delete('customers');
     await db.delete('expenses');
+    await db.delete('categories');
+    await db.delete('suppliers');
+    await db.delete('supplier_transactions');
     await _seedDatabase(db);
   }
 
   Future<void> _seedDatabase(Database db) async {
+    // Seed Categories
+    final categories = _getSeedCategories();
+    for (var cat in categories) {
+      await db.insert('categories', {'name': cat});
+    }
+
     // Seed Products
     final products = _getSeedProducts();
     for (var p in products) {
@@ -139,18 +200,86 @@ class DatabaseHelper {
     for (var e in expenses) {
       await db.insert('expenses', e.toMap());
     }
+
+    // Seed Suppliers
+    final suppliers = _getSeedSuppliers();
+    for (var s in suppliers) {
+      await db.insert('suppliers', s.toMap());
+    }
+
+    // Seed Supplier Transactions
+    final transactions = _getSeedSupplierTransactions();
+    for (var t in transactions) {
+      await db.insert('supplier_transactions', t.toMap());
+    }
   }
 
   // --- SEED GENERATORS ---
   List<Product> _getSeedProducts() => [
-        Product(name: 'Black Forest Cake', price: 1250.0, stock: 18, category: 'Cakes', lowStockThreshold: 5),
-        Product(name: 'Chocolate Pastry', price: 60.0, stock: 35, category: 'Pastries', lowStockThreshold: 10),
-        Product(name: 'Veg Puff', price: 25.0, stock: 52, category: 'Pastries', lowStockThreshold: 15),
-        Product(name: 'White Bread', price: 40.0, stock: 48, category: 'Bread', lowStockThreshold: 10),
-        Product(name: 'Milk Bread', price: 45.0, stock: 0, category: 'Bread', lowStockThreshold: 5),
-        Product(name: 'Butter Cookies', price: 120.0, stock: 18, category: 'Cookies', lowStockThreshold: 8),
-        Product(name: 'Pineapple Cake (1 Kg)', price: 800.0, stock: 4, category: 'Cakes', lowStockThreshold: 5),
-        Product(name: 'Red Velvet Cake (1.5 Kg)', price: 1200.0, stock: 3, category: 'Cakes', lowStockThreshold: 5),
+        Product(name: 'Black Forest Cake', price: 1250.0, stock: 18, category: 'Cakes', lowStockThreshold: 5, barcode: '789012'),
+        Product(name: 'Chocolate Pastry', price: 60.0, stock: 35, category: 'Pastries', lowStockThreshold: 10, barcode: '789013'),
+        Product(name: 'Veg Puff', price: 25.0, stock: 52, category: 'Pastries', lowStockThreshold: 15, barcode: 'puff'),
+        Product(name: 'White Bread', price: 40.0, stock: 48, category: 'Bread', lowStockThreshold: 10, barcode: '789015'),
+        Product(name: 'Milk Bread', price: 45.0, stock: 0, category: 'Bread', lowStockThreshold: 5, barcode: '789016'),
+        Product(name: 'Butter Cookies', price: 120.0, stock: 18, category: 'Cookies', lowStockThreshold: 8, barcode: 'cookies'),
+        Product(name: 'Pineapple Cake (1 Kg)', price: 800.0, stock: 4, category: 'Cakes', lowStockThreshold: 5, barcode: '789018'),
+        Product(name: 'Red Velvet Cake (1.5 Kg)', price: 1200.0, stock: 3, category: 'Cakes', lowStockThreshold: 5, barcode: 'blackforest'),
+      ];
+
+  List<String> _getSeedCategories() => [
+        'Cakes',
+        'Pastries',
+        'Bread',
+        'Cookies',
+        'Beverages',
+        'Shake',
+        'Juice',
+        'Tea/Coffee',
+        'Burger/Sandwich',
+        'Ice Cream',
+        'Chips',
+      ];
+
+  List<Supplier> _getSeedSuppliers() => [
+        Supplier(name: 'Royal Flour Mills', phone: '9888112233', email: 'royalflour@gmail.com', pendingDues: 4500.0, paidAmount: 12000.0, notes: 'Wholesale dealer in high-grade flour'),
+        Supplier(name: 'Sugar Standard Distributors', phone: '9777223344', email: 'sugarstand@gmail.com', pendingDues: 0.0, paidAmount: 8500.0, notes: 'Bulk sugar and refined syrups'),
+        Supplier(name: 'Dairy Fresh Farms', phone: '9666334455', email: 'dairyfresh@gmail.com', pendingDues: 2500.0, paidAmount: 18000.0, notes: 'Fresh cream, milk and block butter'),
+      ];
+
+  List<SupplierTransaction> _getSeedSupplierTransactions() => [
+        SupplierTransaction(
+          supplierId: 1,
+          productsPurchased: 'Premium Maida Flour (10 Bags)',
+          quantity: 10,
+          costPrice: 850.0,
+          totalAmount: 8500.0,
+          paidAmount: 4000.0,
+          dueAmount: 4500.0,
+          transactionDate: '2026-05-24',
+          notes: 'Half payment made in cash, rest due next week',
+        ),
+        SupplierTransaction(
+          supplierId: 2,
+          productsPurchased: 'Refined Sugar (5 Bags)',
+          quantity: 5,
+          costPrice: 600.0,
+          totalAmount: 3000.0,
+          paidAmount: 3000.0,
+          dueAmount: 0.0,
+          transactionDate: '2026-05-23',
+          notes: 'Paid fully through UPI payment',
+        ),
+        SupplierTransaction(
+          supplierId: 3,
+          productsPurchased: 'Salted Butter (50 Blocks)',
+          quantity: 50,
+          costPrice: 150.0,
+          totalAmount: 7500.0,
+          paidAmount: 5000.0,
+          dueAmount: 2500.0,
+          transactionDate: '2026-05-22',
+          notes: '2500 balance outstanding in running account ledger',
+        ),
       ];
 
   List<Customer> _getSeedCustomers() => [
@@ -218,6 +347,9 @@ class DatabaseHelper {
       _webCustomers.addAll(_getSeedCustomers());
       _webOrders.addAll(_getSeedOrders());
       _webExpenses.addAll(_getSeedExpenses());
+      _webCategories.addAll(_getSeedCategories());
+      _webSuppliers.addAll(_getSeedSuppliers());
+      _webSupplierTransactions.addAll(_getSeedSupplierTransactions());
     }
   }
 
@@ -388,6 +520,146 @@ class DatabaseHelper {
     }
     final db = await instance.database;
     return await db.insert('expenses', expense.toMap());
+  }
+
+  // ==========================================
+  // CATEGORIES CRUD
+  // ==========================================
+  Future<List<String>> getCategories() async {
+    if (kIsWeb) {
+      initWebMemory();
+      return List.from(_webCategories);
+    }
+    final db = await instance.database;
+    final result = await db.query('categories');
+    return result.map((json) => json['name'] as String).toList();
+  }
+
+  Future<int> insertCategory(String name) async {
+    if (kIsWeb) {
+      initWebMemory();
+      if (!_webCategories.contains(name)) {
+        _webCategories.add(name);
+        return 1;
+      }
+      return 0;
+    }
+    final db = await instance.database;
+    try {
+      return await db.insert('categories', {'name': name});
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  // ==========================================
+  // SUPPLIERS CRUD
+  // ==========================================
+  Future<List<Supplier>> getSuppliers() async {
+    if (kIsWeb) {
+      initWebMemory();
+      return List.from(_webSuppliers);
+    }
+    final db = await instance.database;
+    final result = await db.query('suppliers');
+    return result.map((json) => Supplier.fromMap(json)).toList();
+  }
+
+  Future<int> insertSupplier(Supplier supplier) async {
+    if (kIsWeb) {
+      initWebMemory();
+      final id = _webSuppliers.length + 1;
+      final newSupplier = supplier.copyWith(id: id);
+      _webSuppliers.add(newSupplier);
+      return id;
+    }
+    final db = await instance.database;
+    return await db.insert('suppliers', supplier.toMap());
+  }
+
+  Future<int> updateSupplier(Supplier supplier) async {
+    if (kIsWeb) {
+      initWebMemory();
+      final idx = _webSuppliers.indexWhere((s) => s.id == supplier.id);
+      if (idx != -1) {
+        _webSuppliers[idx] = supplier;
+        return 1;
+      }
+      return 0;
+    }
+    final db = await instance.database;
+    return await db.update(
+      'suppliers',
+      supplier.toMap(),
+      where: 'id = ?',
+      whereArgs: [supplier.id],
+    );
+  }
+
+  Future<int> deleteSupplier(int id) async {
+    if (kIsWeb) {
+      initWebMemory();
+      _webSuppliers.removeWhere((s) => s.id == id);
+      _webSupplierTransactions.removeWhere((t) => t.supplierId == id);
+      return 1;
+    }
+    final db = await instance.database;
+    await db.delete('supplier_transactions', where: 'supplierId = ?', whereArgs: [id]);
+    return await db.delete('suppliers', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ==========================================
+  // SUPPLIER TRANSACTIONS CRUD
+  // ==========================================
+  Future<List<SupplierTransaction>> getSupplierTransactions() async {
+    if (kIsWeb) {
+      initWebMemory();
+      return List.from(_webSupplierTransactions);
+    }
+    final db = await instance.database;
+    final result = await db.query('supplier_transactions', orderBy: 'transactionDate DESC');
+    return result.map((json) => SupplierTransaction.fromMap(json)).toList();
+  }
+
+  Future<int> insertSupplierTransaction(SupplierTransaction transaction) async {
+    if (kIsWeb) {
+      initWebMemory();
+      final id = _webSupplierTransactions.length + 1;
+      final newTrans = transaction.copyWith(id: id);
+      _webSupplierTransactions.insert(0, newTrans);
+
+      // Update supplier running balances dynamically in memory
+      final supIdx = _webSuppliers.indexWhere((s) => s.id == transaction.supplierId);
+      if (supIdx != -1) {
+        final s = _webSuppliers[supIdx];
+        _webSuppliers[supIdx] = s.copyWith(
+          pendingDues: s.pendingDues + transaction.dueAmount,
+          paidAmount: s.paidAmount + transaction.paidAmount,
+        );
+      }
+      return id;
+    }
+    final db = await instance.database;
+    
+    // Perform double-ledger dynamic balance updates under a single atomic SQLite transaction
+    return await db.transaction((txn) async {
+      final id = await txn.insert('supplier_transactions', transaction.toMap());
+      
+      final list = await txn.query('suppliers', where: 'id = ?', whereArgs: [transaction.supplierId]);
+      if (list.isNotEmpty) {
+        final s = Supplier.fromMap(list.first);
+        await txn.update(
+          'suppliers',
+          s.copyWith(
+            pendingDues: s.pendingDues + transaction.dueAmount,
+            paidAmount: s.paidAmount + transaction.paidAmount,
+          ).toMap(),
+          where: 'id = ?',
+          whereArgs: [s.id],
+        );
+      }
+      return id;
+    });
   }
 }
 
